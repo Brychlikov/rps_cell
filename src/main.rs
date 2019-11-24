@@ -12,8 +12,12 @@ use piston::input::*;
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{ GlGraphics, OpenGL };
 use rand::Rng;
+use std::borrow::Borrow;
+use piston::input::keyboard::Key::Colon;
 
 mod cell;
+use cell::{Cell, Color};
+
 mod array;
 
 pub struct App {
@@ -67,12 +71,12 @@ impl App {
 
             // Draw a box rotating around the middle of the screen
         });
+        self.update_board();
     }
 
     fn update(&mut self, args: &UpdateArgs) {
         // Rotate 2 radians per second.
         self.rotation += 2.0 * args.dt;
-        self.update_board();
         if self.brush_down {
             let x = (self.cursor_position.0 / 2.0) as usize;
             let y = (self.cursor_position.1 / 2.0) as usize;
@@ -90,7 +94,9 @@ impl App {
 
 fn main() {
     
-    let r = cell::RpsAutomata::new(300, 300);
+    let mut r = cell::RpsAutomata::new(300, 300);
+//    r.board[(0, 0)] = Cell{strength: 100, color: Color::Red};
+//    r.board[(1, 1)] = Cell{strength: 100, color: Color::Green};
 
 
     // Change this to OpenGL::V2_1 if not working.

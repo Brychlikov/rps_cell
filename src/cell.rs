@@ -5,10 +5,12 @@ extern crate num_traits;
 use super::array::Array2D;
 
 use rand::Rng;
-use std::ops::{Generator, GeneratorState};
+use rand::prelude::*;
+use std::ops::{Generator, GeneratorState, IndexMut};
 use num_traits::identities;
+use core::fmt::Alignment::Center;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Color {
     Red,
     Green,
@@ -37,7 +39,8 @@ impl Cell {
 
 pub struct RpsAutomata {
     pub board: Array2D<Cell>,
-    pub size: (usize, usize)
+    pub size: (usize, usize),
+    rng: rand::rngs::ThreadRng
 }
 
 type Point = (usize, usize);
@@ -47,11 +50,12 @@ impl RpsAutomata {
 
         Self {
             board: Array2D::empty(size_x, size_y),
-            size: (size_x, size_y)
+            size: (size_x, size_y),
+            rng: rand::thread_rng()
         }
     }
 
-    fn random_neighbour(&self, coord: (usize, usize)) -> &Cell {
+    fn random_neighbour(&mut self, coord: (usize, usize)) -> (Point, &Cell) {
         let mut possible = Vec::with_capacity(8);
         
         let left_safe = coord.0 >= 1;
@@ -91,51 +95,78 @@ impl RpsAutomata {
             possible.push((coord.0 - 1, coord.1 + 1));
         }
 
-        let mut rng = rand::thread_rng();
-        let index: usize = rng.gen_range(0, possible.len());
+        let index: usize = self.rng.gen_range(0, possible.len());
         let indices = possible[index];
-        &self.board[indices]
+        (possible[index], &self.board[indices])
     }
 
 
     pub fn update(&mut self) {
-        let mut new_board: Array2D<Cell> = Array2D::empty(self.board.dim().0, self.board.dim().1);
+        let mut new_board: Array2D<Cell> = self.board.clone();
 
         for y in 0..self.size.1 {
             for x in 0..self.size.0 {
                 let c = (x, y);
 
                 let el = self.board[c];
-                let rival = self.random_neighbour(c);
+                let (c_rival, rival) = self.random_neighbour(c);
 
-                match el.color {
-                    Color::White => {
-                        if rival.strength > 0 {
-                            new_board[c] = Cell{strength: rival.strength - 1, color: rival.color};
-                            continue;
-                        }
-                    },
-                    Color::Red => {
-                        if let Color::Green = rival.color {
-                            // new_board[c] = Cell{strength: Cell::max_strength, color: Color::Green};
-                            new_board[c] = Cell{strength: 0, color: Color::Green};
-                            continue;
-                        }
-                    },
-                    Color::Green => {
-                        if let Color::Blue = rival.color {
-                            new_board[c] = Cell{strength: 0, color: Color::Blue};
-                            continue;
-                        }
-                    },
-                    Color::Blue => {
-                        if let Color::Red = rival.color {
-                            new_board[c] = Cell{strength: 0, color: Color::Red};
-                            continue;
-                        }
-                    }
+                if let Color::White = el.color {
+                    continue;
                 }
-                new_board[c] = el;
+
+                match rival.color {
+                    Color::White => {
+                        if el.strength > 0  {
+                            new_board[c_rival] = Cell{color: el.color, strength: el.strength - 1};
+                        }
+                    },
+
+                    Color::Red => {
+                        if let Color::Green = el.color {
+                            let mut rival_ref =new_board.index_mut(c_rival);
+                            if rival_ref.strength > 1 {
+                                rival_ref.strength -= 1;
+                            } else{
+                                *rival_ref = Cell::default();
+                            }
+                            let mut el_ref = new_board.index_mut(c);
+                            if el_ref.strength < 10 {
+                                el_ref.strength += 1;
+                            }
+                        }
+                    },
+
+                    Color::Green => {
+                        if let Color::Blue = el.color {
+                            let mut rival_ref =new_board.index_mut(c_rival);
+                            if rival_ref.strength > 1 {
+                                rival_ref.strength -= 1;
+                            } else{
+                                *rival_ref = Cell::default();
+                            }
+                            let mut  el_ref = new_board.index_mut(c);
+                            if el_ref.strength < 10 {
+                                el_ref.strength += 1;
+                            }
+                        }
+                    },
+
+                    Color::Blue => {
+                        if let Color::Red = el.color {
+                            let mut rival_ref = new_board.index_mut(c_rival);
+                            if rival_ref.strength > 1 {
+                                rival_ref.strength -= 1;
+                            } else{
+                                *rival_ref = Cell::default();
+                            }
+                            let mut el_ref = new_board.index_mut(c);
+                            if el_ref.strength < 10 {
+                                el_ref.strength += 1;
+                            }
+                        }
+                    },
+                }
             }
         }
         std::mem::swap(&mut self.board, &mut new_board);
