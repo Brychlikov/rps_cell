@@ -20,15 +20,6 @@ use cell::{Cell, Color};
 
 mod array;
 
-pub struct App {
-    gl: GlGraphics, // OpenGL drawing backend.
-    rotation: f64,   // Rotation for the square.
-    board: cell::RpsAutomata,
-    brush_down: bool,
-    current_selection: cell::Color,
-    cursor_position: (f64, f64)
-}
-
 pub struct CellView {
     gl: GlGraphics,
     current_cell_size: f64,
@@ -159,70 +150,6 @@ impl BoardConroller {
             self.current_selection = cell::Color::Blue;
         }
     }
-}
-
-
-impl App {
-    fn render(&mut self, args: &RenderArgs) {
-        use graphics::*;
-
-        const GREEN: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
-        const RED:   [f32; 4] = [1.0, 0.0, 0.0, 1.0];
-        const BLUE:   [f32; 4] = [0.0, 0.0, 1.0, 1.0];
-        const BACKGROUND: [f32; 4] = [0.1, 0.1, 0.1, 1.0];
-
-        let sq_size = 2;
-        let starting_position = (0, 0);
-
-        let mut to_draw = Vec::new();
-
-        for y in 0..self.board.size.1 {
-            for x in 0..self.board.size.0 {
-                let c = (x, y);
-                let el = self.board.board[c];
-                let square = rectangle::square(x as f64 * sq_size as f64, y as f64 * sq_size as f64, sq_size as f64);
-
-                let color = match el.color {
-                    cell::Color::White => BACKGROUND,
-                    cell::Color::Red => RED,
-                    cell::Color::Green => GREEN,
-                    cell::Color::Blue => BLUE,
-                    _ => unreachable!()
-                };
-                to_draw.push((square, color))
-            }
-        }
-
-        self.gl.draw(args.viewport(), |c, gl| {
-            // Clear the screen.
-            clear([0.0, 0.0, 0.0, 1.0], gl);
-
-            let transform = c.transform.trans(0.0, 0.0);
-            for (square, color) in to_draw {
-                rectangle(color, square, transform, gl);
-            }
-
-            // Draw a box rotating around the middle of the screen
-        });
-        self.update_board();
-    }
-
-    fn update(&mut self, args: &UpdateArgs) {
-        // Rotate 2 radians per second.
-        self.rotation += 2.0 * args.dt;
-        if self.brush_down {
-            let x = (self.cursor_position.0 / 2.0) as usize;
-            let y = (self.cursor_position.1 / 2.0) as usize;
-            let c = (x, y);
-            self.board.board[c] = cell::Cell{strength: cell::Cell::max_strength, color: self.current_selection};
-        }
-    }
-
-    fn update_board(&mut self) {
-        self.board.update();
-    }
-
-
 }
 
 fn main() {
