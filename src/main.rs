@@ -67,7 +67,6 @@ impl CellView{
                     cell::Color::Red => RED,
                     cell::Color::Green => GREEN,
                     cell::Color::Blue => BLUE,
-                    _ => unreachable!()
                 };
                 to_draw.push((square, color))
             }
@@ -91,7 +90,8 @@ struct BoardConroller {
     boardview: CellView,
     brush_down: bool,
     current_selection: cell::Color,
-    cursor_position: (f64, f64)
+    cursor_position: (f64, f64),
+    ticks_per_frame: u32
 }
 
 
@@ -103,7 +103,8 @@ impl BoardConroller {
             boardview: CellView::new(gl),
             brush_down: false,
             current_selection: cell::Color::Red,
-            cursor_position: (0.0, 0.0)
+            cursor_position: (0.0, 0.0),
+            ticks_per_frame: 1
         }
     }
 
@@ -114,14 +115,18 @@ impl BoardConroller {
             let x = (cursor_x / self.boardview.current_cell_size) as usize;
             let y = (cursor_y / self.boardview.current_cell_size) as usize;
             let c = (x, y);
-            self.board.board[c] = cell::Cell{strength: cell::Cell::max_strength, color: self.current_selection};
+            if x < self.board.board.size_x && y < self.board.board.size_y {
+                self.board.board[c] = cell::Cell{strength: cell::Cell::max_strength, color: self.current_selection};
+            }
         }
     }
 
     fn parse_event(&mut self, e: &Event) {
         if let Some(r) = e.render_args() {
             self.boardview.render(&self.board, &r);
-            self.board.update();
+            for _ in 0..self.ticks_per_frame {
+                self.board.update();
+            }
         }
 
         if let Some(u) = e.update_args() {
@@ -149,13 +154,23 @@ impl BoardConroller {
         if let Some(Button::Keyboard(Key::B)) = e.press_args() {
             self.current_selection = cell::Color::Blue;
         }
+
+        if let Some(Button::Keyboard(Key::Up)) = e.press_args() {
+            self.ticks_per_frame += 1;
+        }
+
+        if let Some(Button::Keyboard(Key::Down)) = e.press_args() {
+            if self.ticks_per_frame > 0 {
+                self.ticks_per_frame -= 1;
+            }       
+        }
     }
 }
 
 fn main() {
     
     let mut r = cell::RpsAutomata::new(300, 300);
-    r.board[(0, 0)] = Cell{strength: 100, color: Color::Red};
+    // r.board[(0, 0)] = Cell{strength: cell::Cell::max_strength, color: Color::Red};
 //    r.board[(1, 1)] = Cell{strength: 100, color: Color::Green};
 
 

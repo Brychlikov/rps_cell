@@ -3,8 +3,8 @@ use std::ops::{Index, IndexMut};
 #[derive(Clone)]
 pub struct Array2D<T> {
     data: Vec<T>,
-    size_x: usize,
-    size_y:usize
+    pub size_x: usize,
+    pub size_y:usize
 }
 
 impl <T> Array2D<T> {

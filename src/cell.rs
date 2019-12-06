@@ -10,6 +10,10 @@ use std::ops::{Generator, GeneratorState, IndexMut};
 use num_traits::identities;
 use core::fmt::Alignment::Center;
 
+use std::io::Result as ioResult;
+use std::io::{prelude::*, BufReader, SeekFrom};
+use std::fs::{File};
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Color {
     Red,
@@ -53,6 +57,33 @@ impl RpsAutomata {
             size: (size_x, size_y),
             rng: rand::thread_rng()
         }
+    }
+
+    pub fn from_file(fname: &str, upscale: u32) -> ioResult<Self> {
+        let file = File::open(fname)?;
+        let reader = BufReader::new(file);
+        
+        let board_data = Vec::<Vec<Color>>::new();
+        for (y, line) in reader.lines().enumerate() {
+            for (x, c) in line.iter().enumerate() {
+                match c.as_ref() {
+                    " " => {
+                        board_data[y][x] = Color::White;
+                    },
+                    "." => {
+                        board_data[y][x] = Color::Red;
+                    },
+                    "#" => {
+                        board_data[y][x] = Color::Green;
+                    },
+                    "o" => {
+                        board_data[y][x] = Color::Blue;
+                    },
+                    _ => return Err(format!("Unexpected character: {}", c))
+                }
+            }
+        }
+        Err("aaaaaaa")
     }
 
     fn random_neighbour(&mut self, coord: (usize, usize)) -> (Point, &Cell) {
